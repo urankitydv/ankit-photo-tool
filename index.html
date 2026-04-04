@@ -1,65 +1,297 @@
- <p>Drag and drop ya file choose karke apni image load karo. Crop area passport ratio me lock rahega.</p>
-        </div>
 
-        <label class="upload-zone" id="uploadZone" for="fileInput">
-        <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="Upload photo">
-          <input class="hidden-input" id="fileInput" type="file" accept="image/*" />
-          <div>
-            <div class="upload-icon" aria-hidden="true">
-            <strong>Drop your image here</strong>
-            <span>Click to browse. JPG, PNG, WEBP sab supported hain.</span>
-          </div>
-        </label>
-        </div>
-
-        <div class="crop-shell">
-          <h3>Crop & Position</h3>
-      });
-
-      elements.uploadZone.addEventListener("click", () => elements.fileInput.click());
-      elements.uploadZone.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          elements.fileInput.click();
-        }
-      });
-      elements.fileInput.addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (file) {
-        }
-      });
-
-      document.addEventListener("dragover", (event) => {
-        event.preventDefault();
-      });
-
-      document.addEventListener("drop", (event) => {
-        event.preventDefault();
-      });
-
-      ["dragenter", "dragover"].forEach((eventName) => {
-        elements.uploadZone.addEventListener(eventName, (event) => {
-          event.preventDefault();
       }
 
-      state.sourceUrl = URL.createObjectURL(file);
-      elements.sourceImage.onload = () => {
-        setupCropper();
-      };
-      elements.sourceImage.onerror = () => {
-        setStatus("Image load nahi ho paayi. Please dusri image try karo.", true);
-      };
-      elements.sourceImage.src = state.sourceUrl;
-      elements.sourceImage.style.display = "block";
-      elements.cropPlaceholder.style.display = "none";
-      elements.printBtn.disabled = true;
-      state.generatedDataUrl = "";
-      setStatus("Image load ho gayi. Crop adjust karke preview generate karo.");
+      .print-sheet img {
+        width: 210mm;
+        height: 297mm;
+        width: var(--print-width, 210mm);
+        height: var(--print-height, 297mm);
+        display: block;
+      }
 
-      elements.sourceImage.onload = () => {
-        setupCropper();
-      };
-      elements.fileInput.value = "";
+          <label class="field">
+            <span>Number of photos</span>
+            <input id="photoCount" type="number" min="1" max="96" value="8" />
+            <small>A4 sheet par jitni copies chahiye utni enter karo.</small>
+            <small>Selected page par jitni copies chahiye utni enter karo.</small>
+          </label>
+
+          <div class="field">
+          </div>
+        </div>
+
+        <div class="controls-grid">
+          <label class="field">
+            <span>Page Size</span>
+            <select id="pagePreset">
+              <option value="A4">A4 (210 x 297 mm)</option>
+              <option value="Letter">Letter (216 x 279 mm)</option>
+              <option value="Legal">Legal (216 x 356 mm)</option>
+              <option value="A5">A5 (148 x 210 mm)</option>
+              <option value="Custom">Custom Size</option>
+            </select>
+            <small>Preview aur print selected page size ke hisaab se banega.</small>
+          </label>
+
+          <div class="field">
+            <span>Custom Page Size (mm)</span>
+            <div class="controls-grid">
+              <input id="pageWidth" type="number" min="80" max="500" value="210" disabled />
+              <input id="pageHeight" type="number" min="80" max="500" value="297" disabled />
+            </div>
+            <small>Custom select karne par width aur height edit kar sakte ho.</small>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <div>
+            <strong>White Background</strong>
+        </div>
+
+        <div class="button-row">
+          <button class="btn btn-primary" id="generateBtn" type="button">Generate A4 Preview</button>
+          <button class="btn btn-primary" id="generateBtn" type="button">Generate Preview</button>
+          <button class="btn btn-secondary" id="downloadBtn" type="button" disabled>Download</button>
+          <button class="btn btn-secondary" id="printBtn" type="button" disabled>Print</button>
+          <button class="btn btn-danger" id="clearBtn" type="button">Clear</button>
+
+      <section class="preview-layout">
+        <div class="card">
+          <h2>A4 Sheet Preview</h2>
+          <p>Generated passport photos yahan A4 page layout me dikhengi, clean print-ready output ke saath.</p>
+          <h2 id="previewTitle">A4 Sheet Preview</h2>
+          <p id="previewDescription">Generated passport photos yahan selected page layout me dikhengi, clean print-ready output ke saath.</p>
+          <div class="sheet-preview">
+            <canvas id="sheetCanvas" width="2480" height="3508" aria-label="A4 passport sheet preview"></canvas>
+          </div>
+            </div>
+          </div>
+          <div class="helper tiny">
+            A4 size 300 DPI par render hota hai, isliye print output sharp rahega. Agar requested photos zyada hongi to
+            Selected page size 300 DPI par render hota hai, isliye print output sharp rahega. Agar requested photos zyada hongi to
+            page capacity ke according maximum photos hi place hongi.
+          </div>
+        </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+  <script>
+    const A4_WIDTH = 2480;
+    const A4_HEIGHT = 3508;
+    const DPI = 300;
+    const PHOTO_WIDTH = Math.round((35 / 25.4) * 300);
+    const PHOTO_HEIGHT = Math.round((45 / 25.4) * 300);
+    const MARGIN = 118;
+    const GAP = 32;
+    const PAGE_PRESETS = {
+      A4: { label: "A4", widthMm: 210, heightMm: 297 },
+      Letter: { label: "Letter", widthMm: 216, heightMm: 279 },
+      Legal: { label: "Legal", widthMm: 216, heightMm: 356 },
+      A5: { label: "A5", widthMm: 148, heightMm: 210 }
+    };
+
+    const state = {
+      cropper: null,
+      generatedDataUrl: "",
+      photoCount: 8,
+      zoomPercent: 0,
+      darkMode: false
+      darkMode: false,
+      pagePreset: "A4",
+      pageWidthMm: 210,
+      pageHeightMm: 297
+    };
+
+    const elements = {
+      zoomRange: document.getElementById("zoomRange"),
+      zoomValue: document.getElementById("zoomValue"),
+      photoCount: document.getElementById("photoCount"),
+      pagePreset: document.getElementById("pagePreset"),
+      pageWidth: document.getElementById("pageWidth"),
+      pageHeight: document.getElementById("pageHeight"),
+      backgroundToggle: document.getElementById("backgroundToggle"),
+      generateBtn: document.getElementById("generateBtn"),
+      downloadBtn: document.getElementById("downloadBtn"),
+      printBtn: document.getElementById("printBtn"),
+      clearBtn: document.getElementById("clearBtn"),
+      sheetCanvas: document.getElementById("sheetCanvas"),
+      previewTitle: document.getElementById("previewTitle"),
+      previewDescription: document.getElementById("previewDescription"),
+      statusBox: document.getElementById("statusBox"),
+      requestedStat: document.getElementById("requestedStat"),
+      placedStat: document.getElementById("placedStat"),
+
+    function init() {
+      setTheme(localStorage.getItem("apm-theme") === "dark");
+      syncPageControls();
+      drawEmptySheet();
+      bindEvents();
+      updateStats(0, calculateCapacity(), state.photoCount);
+        updateStats(0, calculateCapacity(), value);
+      });
+
+      elements.pagePreset.addEventListener("change", () => {
+        state.pagePreset = elements.pagePreset.value;
+        syncPageControls();
+        drawEmptySheet();
+        updateStats(0, calculateCapacity(), state.photoCount);
+      });
+
+      [elements.pageWidth, elements.pageHeight].forEach((input) => {
+        input.addEventListener("input", () => {
+          if (state.pagePreset !== "Custom") {
+            return;
+          }
+          state.pageWidthMm = clamp(parseInt(elements.pageWidth.value, 10) || 210, 80, 500);
+          state.pageHeightMm = clamp(parseInt(elements.pageHeight.value, 10) || 297, 80, 500);
+          elements.pageWidth.value = state.pageWidthMm;
+          elements.pageHeight.value = state.pageHeightMm;
+          resizeSheetCanvas();
+          drawEmptySheet();
+          updateStats(0, calculateCapacity(), state.photoCount);
+        });
+      });
+
+      elements.zoomRange.addEventListener("input", () => {
+        if (!state.cropper) {
+          return;
+      localStorage.setItem("apm-theme", isDark ? "dark" : "light");
     }
 
-    function setupCropper() {
+    function syncPageControls() {
+      if (state.pagePreset === "Custom") {
+        elements.pageWidth.disabled = false;
+        elements.pageHeight.disabled = false;
+      } else {
+        const preset = PAGE_PRESETS[state.pagePreset] || PAGE_PRESETS.A4;
+        state.pageWidthMm = preset.widthMm;
+        state.pageHeightMm = preset.heightMm;
+        elements.pageWidth.disabled = true;
+        elements.pageHeight.disabled = true;
+      }
+
+      elements.pagePreset.value = state.pagePreset;
+      elements.pageWidth.value = state.pageWidthMm;
+      elements.pageHeight.value = state.pageHeightMm;
+      resizeSheetCanvas();
+      updatePreviewLabels();
+    }
+
+    function updatePreviewLabels() {
+      const label = getPageLabel();
+      elements.previewTitle.textContent = `${label} Sheet Preview`;
+      elements.previewDescription.textContent = "Generated passport photos yahan selected page layout me dikhengi, clean print-ready output ke saath.";
+      elements.sheetCanvas.setAttribute("aria-label", `${label} passport sheet preview`);
+    }
+
+    function getPageLabel() {
+      if (state.pagePreset === "Custom") {
+        return `Custom ${state.pageWidthMm} x ${state.pageHeightMm} mm`;
+      }
+      return (PAGE_PRESETS[state.pagePreset] || PAGE_PRESETS.A4).label;
+    }
+
+    function mmToPx(mm) {
+      return Math.round((mm / 25.4) * DPI);
+    }
+
+    function getPageDimensionsPx() {
+      return {
+        width: mmToPx(state.pageWidthMm),
+        height: mmToPx(state.pageHeightMm)
+      };
+    }
+
+    function resizeSheetCanvas() {
+      const { width, height } = getPageDimensionsPx();
+      elements.sheetCanvas.width = width;
+      elements.sheetCanvas.height = height;
+    }
+
+    function loadImageFile(file) {
+      if (!file.type.startsWith("image/")) {
+        setStatus("Please image file select karo.", true);
+        ? applyWhiteBackground(passportCanvas)
+        : passportCanvas;
+
+      const cols = Math.floor((A4_WIDTH - MARGIN * 2 + GAP) / (PHOTO_WIDTH + GAP));
+      const rows = Math.floor((A4_HEIGHT - MARGIN * 2 + GAP) / (PHOTO_HEIGHT + GAP));
+      const { width: pageWidthPx, height: pageHeightPx } = getPageDimensionsPx();
+      const cols = Math.floor((pageWidthPx - MARGIN * 2 + GAP) / (PHOTO_WIDTH + GAP));
+      const rows = Math.floor((pageHeightPx - MARGIN * 2 + GAP) / (PHOTO_HEIGHT + GAP));
+      const capacity = cols * rows;
+      const requested = clamp(parseInt(elements.photoCount.value, 10) || 1, 1, 96);
+      const totalPhotos = Math.min(requested, capacity);
+      state.photoCount = requested;
+      elements.photoCount.value = requested;
+
+      sheetContext.clearRect(0, 0, A4_WIDTH, A4_HEIGHT);
+      sheetContext.clearRect(0, 0, pageWidthPx, pageHeightPx);
+      sheetContext.fillStyle = "#ffffff";
+      sheetContext.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
+      sheetContext.fillRect(0, 0, pageWidthPx, pageHeightPx);
+
+      let index = 0;
+      const gridWidth = cols * PHOTO_WIDTH + (cols - 1) * GAP;
+      const startX = (A4_WIDTH - gridWidth) / 2;
+      const startX = (pageWidthPx - gridWidth) / 2;
+      const startY = MARGIN;
+
+      for (let row = 0; row < rows; row += 1) {
+      updateStats(totalPhotos, capacity, requested);
+
+      if (requested > capacity) {
+        setStatus(`A4 sheet ki capacity ${capacity} photos hai. Requested ${requested} me se ${totalPhotos} place ki gayi hain.`, true);
+        setStatus(`${getPageLabel()} sheet ki capacity ${capacity} photos hai. Requested ${requested} me se ${totalPhotos} place ki gayi hain.`, true);
+      } else {
+        setStatus(`A4 preview ready hai. ${totalPhotos} passport photos successfully generate ho gayi hain.`);
+        setStatus(`${getPageLabel()} preview ready hai. ${totalPhotos} passport photos successfully generate ho gayi hain.`);
+      }
+    }
+
+        return;
+      }
+
+      document.documentElement.style.setProperty("--print-width", `${state.pageWidthMm}mm`);
+      document.documentElement.style.setProperty("--print-height", `${state.pageHeightMm}mm`);
+      elements.printSheet.innerHTML = `<img src="${state.generatedDataUrl}" alt="Passport photo sheet for printing">`;
+      window.print();
+    }
+
+    function drawEmptySheet() {
+      const { width: pageWidthPx, height: pageHeightPx } = getPageDimensionsPx();
+      const label = getPageLabel();
+      sheetContext.fillStyle = "#ffffff";
+      sheetContext.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
+      sheetContext.fillRect(0, 0, pageWidthPx, pageHeightPx);
+      sheetContext.fillStyle = "#d8deea";
+      sheetContext.font = "700 80px Manrope";
+      sheetContext.textAlign = "center";
+      sheetContext.fillText("A4 Preview", A4_WIDTH / 2, A4_HEIGHT / 2 - 20);
+      sheetContext.fillText(`${label} Preview`, pageWidthPx / 2, pageHeightPx / 2 - 20);
+      sheetContext.font = "500 36px Manrope";
+      sheetContext.fillText("Upload image and click Generate A4 Preview", A4_WIDTH / 2, A4_HEIGHT / 2 + 48);
+      sheetContext.fillText("Upload image and click Generate Preview", pageWidthPx / 2, pageHeightPx / 2 + 48);
+    }
+
+    function updateStats(placed, capacity, requested) {
+    }
+
+    function calculateCapacity() {
+      const cols = Math.floor((A4_WIDTH - MARGIN * 2 + GAP) / (PHOTO_WIDTH + GAP));
+      const rows = Math.floor((A4_HEIGHT - MARGIN * 2 + GAP) / (PHOTO_HEIGHT + GAP));
+      const { width: pageWidthPx, height: pageHeightPx } = getPageDimensionsPx();
+      const cols = Math.floor((pageWidthPx - MARGIN * 2 + GAP) / (PHOTO_WIDTH + GAP));
+      const rows = Math.floor((pageHeightPx - MARGIN * 2 + GAP) / (PHOTO_HEIGHT + GAP));
+      return cols * rows;
+    }
+
+      elements.cropPlaceholder.style.display = "block";
+      elements.backgroundToggle.checked = false;
+      elements.photoCount.value = 8;
+      state.pagePreset = "A4";
+      state.pageWidthMm = 210;
+      state.pageHeightMm = 297;
+      syncPageControls();
+      elements.downloadBtn.disabled = true;
+      elements.printBtn.disabled = true;
+      elements.printSheet.innerHTML = "";
